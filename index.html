@@ -148,16 +148,22 @@ function rawWithOrderTable(print=false){let content=rawBase(print),needed=orderS
 raw=rawWithOrderTable;
 render();
 
-function publicUrl(scope){let base=location.href.split('?')[0];return `${base}?management=1&scope=${scope}`}
-function copyPublicLinks(){modal(`<h2>Management viewing links</h2><p>These links open a protected, read-only management area with no editor navigation or sidebar.</p><div class="share-link-card"><strong>Full management view</strong><span>Internal forecast and Lekor Bites × Yong Mama forecast.</span><input readonly value="${publicUrl('all')}"><button class="btn btn-primary" data-copy-link="${publicUrl('all')}">Copy full view link</button></div><div class="share-link-card"><strong>Lekor Bites only</strong><span>Lekor Bites internal forecast and raw report only.</span><input readonly value="${publicUrl('internal')}"><button class="btn btn-primary" data-copy-link="${publicUrl('internal')}">Copy Lekor Bites link</button></div><div class="share-link-card"><strong>Lekor Bites × Yong Mama only</strong><span>Partner-only forecast and raw report.</span><input readonly value="${publicUrl('partner')}"><button class="btn btn-primary" data-copy-link="${publicUrl('partner')}">Copy partner link</button></div>`)}
+function publicUrl(scope,view='all',week=''){let base=location.href.split('?')[0];return `${base}?management=1&scope=${scope}&view=${view}${week?`&week=${encodeURIComponent(week)}`:''}`}
+function copyPublicLinks(){let weeks=Object.keys(state.data||{}).sort().reverse();let weekOptions=weeks.map(w=>`<option value="${w}" ${w===state.week?'selected':''}>${w} ${w===state.week?'· selected':''}</option>`).join('');modal(`<h2>Share a live view</h2><p>Choose whether the recipient can browse all weeks, opens a selected week, or sees raw materials only.</p><div class="share-link-card"><strong>All weeks · ${state.audience==='partner'?'Lekor Bites × Yong Mama':'Lekor Bites'}</strong><span>Opens the week list, as it does now.</span><input readonly value="${publicUrl(state.audience,'all')}"><button class="btn btn-primary" data-copy-link="${publicUrl(state.audience,'all')}">Copy all-weeks link</button></div><div class="share-link-card"><strong>Open one week directly</strong><span>Recipient lands on the selected week, without choosing from the list.</span><select id="share-week-select">${weekOptions}</select><div class="share-actions"><button class="btn btn-primary" data-copy-week>Copy selected-week link</button></div></div><div class="share-link-card"><strong>Raw materials only</strong><span>Shows order raw allocations, buffer stock and consolidated items to order.</span><input readonly value="${publicUrl(state.audience,'raw')}"><button class="btn btn-primary" data-copy-link="${publicUrl(state.audience,'raw')}">Copy raw-only link</button></div><div class="share-link-card"><strong>Raw materials for one week</strong><span>Opens the raw report for a specific week only.</span><div class="share-actions"><select id="share-raw-week">${weekOptions}</select><button class="btn btn-primary" data-copy-raw-week>Copy raw-week link</button></div></div><div class="share-link-card"><strong>Choose who can view</strong><span>Lekor Bites link shows internal plan. Partner link shows the Yong Mama view.</span><div class="share-actions"><button class="btn" data-copy-link="${publicUrl('internal','all')}">Copy Lekor Bites link</button><button class="btn" data-copy-link="${publicUrl('partner','all')}">Copy partner link</button></div></div>`)}
 $('#share-btn').onclick=copyPublicLinks;
 
-function renderPublicManagement(scope){document.body.classList.add('public-management');state.editing=false;state.audience=scope==='partner'?'partner':'internal';show('management');let title=scope==='partner'?'Lekor Bites × Yong Mama — management view':scope==='internal'?'Lekor Bites — management view':'LekorBites — management view';let onlyScope=scope==='partner'||scope==='internal';let onlyLabel=scope==='partner'?'LEKOR BITES × YONG MAMA ONLY':'LEKOR BITES ONLY';$('#page-title').textContent=title;let originalManagement=management;management=function(detail=false){originalManagement(detail);if(detail){let top=$('.manager-top');if(top&&!$('#management-pdf'))top.insertAdjacentHTML('beforeend','<button class="btn btn-primary" id="management-pdf">⇩ Print PDF</button>');if(onlyScope){$$('[data-ma]').forEach(x=>x.remove());let head=$('.management-plan-head');if(head&&!$('.partner-only-label'))head.insertAdjacentHTML('beforeend',`<span class="partner-only-label">${onlyLabel}</span>`)}}else{let hero=$('.management-hero');if(!hero){$('#management-view').insertAdjacentHTML('afterbegin',`<div class="management-hero glass"><div><p class="eyebrow">LEKORBITES SDN BHD</p><h2>${title}</h2><p>Live weekly planning. Select a week to view the latest operations and material readiness report.</p></div><span class="secure-label">READ ONLY · LIVE</span></div>`)};if(onlyScope)$$('.management-card').forEach(card=>card.insertAdjacentHTML('beforeend',`<small>${onlyLabel}</small>`))}};management(false)}
+function renderPublicManagement(scope){document.body.classList.add('public-management');state.editing=false;state.audience=scope==='partner'?'partner':'internal';let view=publicParams.get('view')||'all',week=publicParams.get('week');if(week&&state.data[week])state.week=week;show('management');let title=scope==='partner'?'Lekor Bites × Yong Mama — management view':scope==='internal'?'Lekor Bites — management view':'LekorBites — management view';let onlyScope=scope==='partner'||scope==='internal';let onlyLabel=scope==='partner'?'LEKOR BITES × YONG MAMA ONLY':'LEKOR BITES ONLY';$('#page-title').textContent=title;let originalManagement=management;management=function(detail=false){originalManagement(detail);if(detail){let top=$('.manager-top');if(view==='raw'){document.querySelector('.manager-calendar')?.remove();$$('[data-ma]').forEach(x=>x.remove());let report=$('.raw-report');if(report){report.insertAdjacentHTML('afterbegin','<span class="partner-only-label">RAW MATERIALS ONLY</span>');report.scrollIntoView({block:'start',behavior:'smooth'})}}if(top&&!$('#management-pdf'))top.insertAdjacentHTML('beforeend','<button class="btn btn-primary" id="management-pdf">⇩ Print PDF</button>');if(onlyScope){$$('[data-ma]').forEach(x=>x.remove());let head=$('.management-plan-head');if(head){let eyebrow=head.querySelector('.eyebrow');if(eyebrow)eyebrow.textContent=scope==='partner'?'LEKOR BITES × YONG MAMA · LIVE WEEKLY PLAN':'LEKOR BITES · LIVE WEEKLY PLAN';if(!head.querySelector('.partner-only-label')&&view!=='raw')head.insertAdjacentHTML('beforeend',`<span class="partner-only-label">${onlyLabel}</span>`)}}}else{let hero=$('.management-hero');if(!hero){$('#management-view').insertAdjacentHTML('afterbegin',`<div class="management-hero glass"><div><p class="eyebrow">LEKORBITES SDN BHD</p><h2>${title}</h2><p>Live weekly planning. Select a week to view the latest operations and material readiness report.</p></div><span class="secure-label">READ ONLY · LIVE</span></div>`);hero=$('.management-hero')}if(hero){let heading=hero.querySelector('h2'),copy=hero.querySelector('p:not(.eyebrow)');if(heading)heading.textContent=title;if(copy)copy.textContent=scope==='partner'?'Live Lekor Bites × Yong Mama weekly forecast. Select a week to view the shared plan and raw-material readiness.':scope==='internal'?'Live Lekor Bites weekly forecast. Select a week to view operations and raw-material readiness.':'Live weekly planning. Select a week to review operations and raw-material readiness.'}if(onlyScope)$$('.management-card').forEach(card=>{if(!card.querySelector('small'))card.insertAdjacentHTML('beforeend',`<small>${onlyLabel}</small>`)})}};if(view==='raw'){state.week=week&&state.data[week]?week:(state.week||Object.keys(state.data).sort().at(-1));management(true);$('#management-view').classList.add('hidden');$('#management-detail-view').classList.remove('hidden');$('#management-detail-view').querySelector('.manager-top')?.querySelector('#back-manager')?.remove();$('#management-detail-view').querySelector('.management-plan-head')?.remove()}else if(week&&state.data[week]){management(true);$('#management-view').classList.add('hidden');$('#management-detail-view').classList.remove('hidden');$('#back-manager')?.remove()}else management(false)}
 const publicParams=new URLSearchParams(location.search);if(publicParams.get('management')==='1'){let publicScope=publicParams.get('scope');renderPublicManagement(publicScope==='partner'||publicScope==='internal'?publicScope:'all');}
 
-document.addEventListener('click',e=>{let copy=e.target.closest('[data-copy-link]');if(copy){navigator.clipboard?.writeText(copy.dataset.copyLink);copy.textContent='Copied ✓';toast('Management viewing link copied')}if(e.target.id==='management-pdf')pdf()});
+document.addEventListener('click',e=>{let copy=e.target.closest('[data-copy-link]');let url=copy?.dataset.copyLink;if(e.target.closest('[data-copy-week]')){let week=$('#share-week-select')?.value;url=publicUrl(state.audience,'week',week)}if(e.target.closest('[data-copy-raw-week]')){let week=$('#share-raw-week')?.value;url=publicUrl(state.audience,'raw',week)}if(url){navigator.clipboard?.writeText(url).then(()=>toast('Share link copied')).catch(()=>{let input=document.createElement('textarea');input.value=url;document.body.appendChild(input);input.select();document.execCommand('copy');input.remove();toast('Share link copied')});if(copy)copy.textContent='Copied ✓'}if(e.target.id==='management-pdf')pdf()});
 $('.mobile-menu').onclick=()=>document.body.classList.toggle('mobile-nav-open');
-if(db&&publicParams.get('management')==='1')db.ref('lekorbites-forecast').on('value',snapshot=>{if(!snapshot.val())return;state.data=snapshot.val();if(!$('#management-detail-view').classList.contains('hidden'))management(true);else management(false)});
+if(db&&publicParams.get('management')==='1')db.ref('lekorbites-forecast').on('value',snapshot=>{if(!snapshot.val())return;state.data=snapshot.val();let fixedWeek=publicParams.get('week'),fixedView=publicParams.get('view');if(fixedWeek&&state.data[fixedWeek])state.week=fixedWeek;if(fixedView==='raw'||fixedWeek){if(!document.body.classList.contains('public-management'))renderPublicManagement(publicParams.get('scope')||'all');else{management(true);$('#management-view').classList.add('hidden');$('#management-detail-view').classList.remove('hidden');if(fixedView==='raw'){$('#management-detail-view .manager-calendar')?.remove();$('#management-detail-view .management-plan-head')?.remove();$('#management-detail-view #back-manager')?.remove()}}}else if(!$('#management-detail-view').classList.contains('hidden'))management(true);else management(false)});
+
+/* Direct links always resolve to the requested share mode after cloud data arrives. */
+if(publicParams.get('management')==='1'&&(publicParams.get('week')||publicParams.get('view')==='raw')){
+  const applyPinnedPublicView=()=>{const w=publicParams.get('week');if(w&&state.data[w])state.week=w;if(publicParams.get('view')==='raw'){$('#management-view').classList.add('hidden');$('#management-detail-view').classList.remove('hidden');management(true);$('#management-detail-view .manager-calendar')?.remove();$('#management-detail-view .management-plan-head')?.remove();$('#management-detail-view #back-manager')?.remove()}};
+  applyPinnedPublicView();
+}
 
 function logText(value){return typeof value==='object'?(value.text||value.label||''):String(value||'')}
 function logState(day,type,index){day.logStatus||(day.logStatus={out:[],raw:[]});day.logStatus[type]||(day.logStatus[type]=[]);day.logStatus[type][index]||(day.logStatus[type][index]={check:false,done:false});return day.logStatus[type][index]}
@@ -276,12 +282,14 @@ render();
   function materialPreview(material, section, recordIndex, materialIndex, print) {
     const arrival = material.track && state.editing && !print
       ? `<button class="raw-arrival-tick" data-material-arrival="${section}|${recordIndex}|${materialIndex}" title="Mark raw material arrived">${material.arrived ? '✓' : ''}</button>` : '';
-    if (material.enough) return `<div class="raw-line raw-material-line enough-row"><b>${safeRawText(material.name)}</b><span class="enough-pill">ENOUGH ✓</span><span>—</span><span class="not-required">Not required</span></div>`;
-    return `<div class="raw-line raw-material-line ${material.arrived ? 'done' : ''}"><b>${safeRawText(material.name)}</b><span class="need-pill">NEED ORDER</span><span>${safeRawText(material.current || '—')}</span><strong class="to-order-value">${safeRawText(material.toOrder || 'To confirm')}</strong>${arrival}</div>`;
+    const status = material.enough ? '<span class="enough-pill">ENOUGH ✓</span>' : '<span class="need-pill">NEED ORDER</span>';
+    const current = material.current ? safeRawText(material.current) : 'Not recorded';
+    const order = material.enough ? 'Not required' : safeRawText(material.toOrder || 'To confirm');
+    return `<div class="raw-line raw-material-line ${material.arrived ? 'done' : ''} ${material.enough ? 'enough-row' : ''}"><b>${safeRawText(material.name)}</b><div class="raw-fact raw-status-fact"><small>STATUS</small>${status}</div><div class="raw-fact raw-current-fact"><small>CURRENT STOCK</small><strong>${current}</strong></div><div class="raw-fact raw-order-fact"><small>TO ORDER</small><strong class="${material.enough ? 'not-required' : 'to-order-value'}">${order}</strong></div>${arrival}</div>`;
   }
 
   function materialTable(record, section, recordIndex, print) {
-    return `<div class="raw-column-head raw-readiness-head"><span>RAW MATERIAL</span><span>STATUS</span><span>CURRENT BALANCE</span><span>TO ORDER</span></div>${record.materials.map((material, index) => materialPreview(material, section, recordIndex, index, print)).join('')}`;
+    return `<div class="raw-readiness-list">${record.materials.map((material, index) => materialPreview(material, section, recordIndex, index, print)).join('')}</div>`;
   }
 
   function rawReadinessReport(print = false) {
@@ -1251,6 +1259,142 @@ render();
   window.addEventListener('error', e => { try { toast('Error: ' + e.message); } catch (_) {} });
 
   render();
+})();
+</script>
+<style>
+/* Share modal and public mobile presentation */
+.share-link-card{box-shadow:0 10px 28px rgba(21,87,58,.07);margin-top:14px;padding:18px}.share-link-card input,.share-link-card select{min-height:42px}.share-link-card .btn{min-height:42px}.share-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.share-actions select{flex:1;min-width:170px}
+@media(max-width:760px){.public-management main{padding:16px 12px}.public-management .management-hero{padding:22px;border-radius:18px}.public-management .management-hero h2{font-size:24px;line-height:1.15}.public-management .management-list{grid-template-columns:1fr;gap:11px}.public-management .management-card{min-height:0;padding:18px}.public-management .management-card strong{margin:10px 0 16px;line-height:1.35}.public-management .manager-top{top:5px;margin-bottom:16px}.public-management .management-plan-head{padding:7px 2px 0}.public-management .management-plan-head h2{font-size:25px;line-height:1.15}.public-management .management-plan-head p{font-size:13px;line-height:1.6}.public-management .manager-calendar{display:grid;grid-template-columns:1fr;gap:12px;overflow:visible}.public-management .day-card{min-height:0;border-radius:15px;box-shadow:0 8px 22px rgba(18,76,51,.05)}.public-management .day-head{padding:15px 16px}.public-management .day-name{font-size:15px}.public-management .day-date{font-size:11px}.public-management .day-load b{font-size:14px}.public-management .shift{padding:0 14px 10px}.public-management .shift-title{font-size:10px;padding:9px 4px 7px}.public-management .task{font-size:13px;line-height:1.5;padding:11px 12px 11px 21px;border-radius:10px}.public-management .task:before{left:9px;top:17px;width:5px;height:5px}.public-management .logistics{padding:0 14px 10px}.public-management .log-item{font-size:12px;line-height:1.45;padding:10px;border-radius:0 9px 9px 0}.public-management .empty-day{font-size:12px;padding:10px}.public-management .raw-report{padding-top:20px}.public-management .raw-report-head{display:block;margin-bottom:15px}.public-management .raw-report h2{font-size:23px;line-height:1.2}.public-management .raw-report-head p{font-size:12px;line-height:1.55}.public-management .raw-total{margin-top:14px;padding:14px 16px}.public-management .raw-columns{grid-template-columns:1fr;gap:12px}.public-management .raw-label{font-size:10px}.public-management .raw-card{padding:15px;border-radius:13px}.public-management .raw-card h3{font-size:15px;overflow-wrap:anywhere}.public-management .raw-card-head{gap:8px}.public-management .raw-line,.public-management .raw-material-line{grid-template-columns:minmax(0,1.2fr) minmax(62px,.7fr) minmax(80px,.9fr);gap:6px;font-size:11px;overflow-wrap:anywhere}.public-management .raw-note{font-size:12px;line-height:1.55}.public-management .order-summary{padding:17px;border-radius:14px}.public-management .order-summary h3{font-size:19px}.public-management .order-summary-table>div{gap:10px;padding:11px 0}.public-management .order-summary-table strong,.public-management .order-summary-table span{font-size:12px;overflow-wrap:anywhere}.public-management .manager-top .btn{min-height:42px}.public-management .manager-top .secure-label{font-size:8px}.public-management .system-credit{margin-top:30px}.share-link-card{padding:15px}.share-link-card strong{font-size:14px}.share-link-card span{font-size:12px;line-height:1.5}.share-actions{display:grid;grid-template-columns:1fr}.share-actions .btn{width:100%}}
+@media(prefers-reduced-motion:no-preference){.public-management .management-card,.public-management .day-card,.public-management .raw-card{animation:share-enter .42s cubic-bezier(.2,.75,.25,1) both}.public-management .day-card:nth-child(2){animation-delay:.035s}.public-management .day-card:nth-child(3){animation-delay:.07s}.public-management .day-card:nth-child(4){animation-delay:.105s}.public-management .day-card:nth-child(5){animation-delay:.14s}.public-management .day-card:nth-child(6){animation-delay:.175s}@keyframes share-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}}
+</style>
+<style>
+/* Phone-only refinement: preserve the existing desktop presentation. */
+@media(max-width:760px){
+  .public-management{background:linear-gradient(180deg,#eef8f2 0,#f7fbf8 340px,#f4faf6 100%);background-attachment:fixed}
+  .public-management main{padding:12px 12px 34px}
+  .public-management .manager-top{border-radius:16px;padding:8px;background:rgba(255,255,255,.86);box-shadow:0 8px 24px rgba(26,81,55,.08)}
+  .public-management .manager-top .back-manager{border-radius:10px;font-size:11px;padding:10px 12px}
+  .public-management .manager-top .btn-primary{border-radius:10px;box-shadow:0 7px 16px rgba(14,157,104,.2)}
+  .public-management .management-plan-head{position:relative;margin:0 0 18px;padding:17px 16px!important;border:1px solid rgba(22,113,74,.1);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(239,250,244,.96));box-shadow:0 12px 30px rgba(27,94,60,.07);overflow:hidden}
+  .public-management .management-plan-head:after{content:'';position:absolute;width:118px;height:118px;right:-45px;top:-55px;border-radius:50%;background:radial-gradient(circle,rgba(22,184,125,.18),rgba(22,184,125,0) 70%);pointer-events:none}
+  .public-management .management-plan-head .segmented:empty{display:none}
+  .public-management .management-plan-head .eyebrow,.public-management .raw-report-head .eyebrow{display:inline-flex;align-items:center;width:max-content;max-width:100%;padding:6px 9px;border:1px solid #d9eee1;border-radius:30px;background:#f0faf4;color:#16865c;font-size:8px;letter-spacing:.8px}
+  .public-management .management-plan-head h2{font-size:26px;letter-spacing:-1.1px;margin-top:4px}
+  .public-management .management-plan-head>p:last-of-type{max-width:34ch;color:#657f72}
+  .public-management .partner-only-label{position:relative;z-index:1;margin-top:12px;border-radius:30px;font-size:8px}
+  .public-management .manager-calendar{counter-reset:shareday;gap:11px}
+  .public-management .day-card{position:relative;counter-increment:shareday;border:1px solid rgba(20,72,53,.09);border-radius:17px;box-shadow:0 7px 20px rgba(19,81,52,.055);overflow:hidden;transition:transform .2s ease,box-shadow .2s ease}
+  .public-management .day-card:before{content:'';position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#12a96f,#9de6c1 68%,transparent)}
+  .public-management .day-head{align-items:center;gap:10px;padding:14px 15px 12px;border-bottom:0}
+  .public-management .day-head:before{content:counter(shareday,decimal-leading-zero);display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px;background:#edf8f2;color:#188359;font:700 10px 'DM Mono';letter-spacing:.4px}
+  .public-management .day-head>div{margin-right:auto}
+  .public-management .day-name{font-size:14px;letter-spacing:-.2px}
+  .public-management .day-date{margin-top:2px;color:#80958b;font-size:10px}
+  .public-management .day-load{min-width:48px;padding:6px 8px;border:1px solid #dcefe3;border-radius:10px;background:#f7fcf9;color:#13895b;text-align:center;font-size:11px}
+  .public-management .day-load small{display:block;margin-top:2px;color:#84978d;font:7px 'DM Mono';letter-spacing:.1px}
+  .public-management .battery{height:5px;margin:0 15px 11px;background:#edf3ef}
+  .public-management .battery span{background:linear-gradient(90deg,#12a96f,#8fe0b8);box-shadow:0 0 9px rgba(18,169,111,.16)}
+  .public-management .shift{padding:0 13px 9px}
+  .public-management .shift-title{padding:8px 3px 6px;font-size:9px;letter-spacing:.85px}
+  .public-management .task{margin-bottom:6px;border:1px solid #edf3ef;border-radius:10px;background:#f8fbf9;color:#294b3c;font-size:12px;line-height:1.5;padding:10px 11px 10px 21px;overflow-wrap:anywhere}
+  .public-management .task:before{left:9px;top:16px;width:5px;height:5px;box-shadow:0 0 0 3px rgba(22,184,125,.09)}
+  .public-management .task.afternoon{border-color:#f0edfa;background:#fbfaff}
+  .public-management .task.done{opacity:.62}
+  .public-management .logistics{padding:0 13px 9px}
+  .public-management .log-item{margin:5px 0;padding:9px 10px;border-radius:0 9px 9px 0;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+  .public-management .note-pill{max-width:100%;white-space:normal;line-height:1.45}
+  .public-management .raw-report{margin-top:24px;padding-top:21px;border-top:1px solid #dcebe2}
+  .public-management .raw-report-head{margin-bottom:13px}
+  .public-management .raw-report h2{font-size:23px;letter-spacing:-.8px}
+  .public-management .raw-total{border-radius:14px;box-shadow:0 8px 18px rgba(21,119,73,.07)}
+  .public-management .raw-label{padding:0 2px 7px;color:#718a7d;font-size:9px;letter-spacing:1px}
+  .public-management .raw-card{border:1px solid #e1ece6;border-radius:14px;padding:14px;box-shadow:0 7px 18px rgba(22,76,51,.045)}
+  .public-management .raw-card-head{align-items:center;padding-bottom:10px;margin-bottom:8px}
+  .public-management .status{border-radius:20px;white-space:nowrap}
+  .public-management .raw-column-head{display:none}
+  .public-management .raw-line,.public-management .raw-material-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 9px;align-items:start;padding:9px 0;font-size:11px}
+  .public-management .raw-line>b,.public-management .raw-material-line>b{grid-column:1/-1;color:#294b3b;line-height:1.4}
+  .public-management .raw-line>span,.public-management .raw-material-line>span{padding:5px 7px;border-radius:7px;background:#f5f9f6;color:#526e60;overflow-wrap:anywhere}
+  .public-management .raw-line>span:nth-child(2):before,.public-management .raw-material-line>span:nth-child(2):before{content:'CURRENT  ';color:#83978d;font:7px 'DM Mono';letter-spacing:.4px}
+  .public-management .raw-line>span:nth-child(3):before,.public-management .raw-material-line>span:nth-child(3):before{content:'TO ORDER  ';color:#83978d;font:7px 'DM Mono';letter-spacing:.4px}
+  .public-management .raw-line:not(.raw-material-line)>span:nth-child(3):before{content:'TARGET  '}
+  .public-management .raw-material-line>span:before{content:none!important}
+  .public-management .raw-material-line .need-pill{grid-column:1;align-self:center;border:1px solid #d9eee1;background:#eff9f3;color:#158256;font:8px 'DM Mono';letter-spacing:.35px}
+  .public-management .raw-material-line>span:not(.need-pill){grid-column:2}
+  .public-management .raw-material-line>span:not(.need-pill):before{content:'CURRENT  ';color:#83978d;font:7px 'DM Mono';letter-spacing:.4px}
+  .public-management .raw-material-line .to-order-value{grid-column:2;padding:5px 7px;border-radius:7px;background:#fff3e9;color:#a86021;font-size:10px}
+  .public-management .raw-material-line .to-order-value:before{content:'TO ORDER  ';color:#997254;font:7px 'DM Mono';letter-spacing:.4px}
+  .public-management .raw-note{border:1px solid #edf2ee;background:#f8faf8;color:#587364;font-size:11px}
+  .public-management .order-summary{border:1px solid #cfe8da;background:linear-gradient(145deg,#f0faf4,#fff);box-shadow:0 10px 25px rgba(19,104,64,.06)}
+  .public-management .order-summary-table>div{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .public-management .order-summary-table strong{flex:1;color:#315443}
+  .public-management .order-summary-table span{flex:none;padding:5px 8px;border-radius:8px;background:#e4f6ec;color:#117d53;font-weight:800;white-space:nowrap}
+}
+@media(max-width:390px){.public-management .management-plan-head h2{font-size:24px}.public-management .raw-line>span,.public-management .raw-material-line>span{font-size:10px}.public-management .secure-label{letter-spacing:.5px;padding:6px 7px}}
+@media(prefers-reduced-motion:no-preference){@media(max-width:760px){.public-management .day-card:active{transform:scale(.992)}.public-management .management-plan-head{animation:phoneHeroIn .45s ease-out both}@keyframes phoneHeroIn{from{opacity:.5;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}}}
+</style>
+<style>
+/* Make every raw-material row self-explanatory across internal and partner views. */
+.raw-readiness-list{display:grid;gap:7px}
+.raw-material-line{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;align-items:stretch!important;padding:10px 9px!important;border:1px solid #e8f0eb;border-radius:10px;background:#fbfdfb}
+.raw-material-line>b{grid-column:1/-1;color:#244a38;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.raw-material-line .raw-fact{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:5px;min-width:0;padding:7px;border:1px solid #e8f0eb;border-radius:8px;background:#fff}
+.raw-material-line .raw-fact small{color:#7b9185;font:700 7px 'DM Mono';letter-spacing:.45px;line-height:1.3}
+.raw-material-line .raw-fact strong{color:#305541;font-size:11px;line-height:1.35;overflow-wrap:anywhere;word-break:break-word}
+.raw-material-line .raw-status-fact{background:#f4faf6}
+.raw-material-line .raw-current-fact{background:#f3f8fc;border-color:#e1ebf3}
+.raw-material-line .raw-order-fact{background:#fff8f1;border-color:#f4e5d5}
+.raw-material-line .raw-order-fact strong.to-order-value{padding:0;border:0;background:transparent;color:#a55c1b!important}
+.raw-material-line .raw-order-fact strong.to-order-value:before{content:none!important}
+.raw-material-line .raw-order-fact strong.not-required{color:#6e8578}
+.raw-material-line .enough-pill,.raw-material-line .need-pill{font-size:7px;white-space:normal}
+.raw-material-line.done{opacity:.72;text-decoration:none}
+.raw-material-line .raw-arrival-tick{z-index:1}
+@media(max-width:760px){.public-management .raw-material-line{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;padding:10px 8px!important}.public-management .raw-material-line .raw-fact{padding:6px}.public-management .raw-material-line .raw-fact small{font-size:7px;letter-spacing:.25px}.public-management .raw-material-line .raw-fact strong{font-size:10px}.public-management .raw-material-line>b{font-size:12px}.public-management .raw-material-line .raw-status-fact .enough-pill,.public-management .raw-material-line .raw-status-fact .need-pill{font-size:7px}.public-management .raw-material-line .raw-arrival-tick{right:4px;top:4px}}
+</style>
+<style>
+@media(max-width:760px){
+  .public-management .day-jump-nav{position:sticky;top:67px;z-index:4;display:flex;align-items:center;gap:6px;margin:0 -1px 10px;padding:8px 6px;border:1px solid rgba(210,232,220,.9);border-radius:13px;background:rgba(247,251,248,.94);backdrop-filter:blur(12px);box-shadow:0 6px 18px rgba(18,76,51,.07);overflow-x:auto;scrollbar-width:none}
+  .public-management .day-jump-nav::-webkit-scrollbar{display:none}
+  .public-management .day-jump-nav button{flex:none;min-width:47px;min-height:39px;padding:5px 7px;border:1px solid #e1ece5;border-radius:9px;background:#fff;color:#547264;font:700 8px 'DM Mono';letter-spacing:.2px;cursor:pointer}
+  .public-management .day-jump-nav button:not(.raw-jump){flex:1;min-width:32px;padding:4px 3px}
+  .public-management .day-jump-nav button span{display:block;margin-top:3px;color:#879b90;font-size:8px}
+  .public-management .day-jump-nav button[aria-current=true]{border-color:#b8e5ce;background:#eaf8f0;color:#087d51;box-shadow:inset 0 0 0 1px rgba(16,151,96,.06)}
+  .public-management .day-jump-nav button.raw-jump{min-width:54px;margin-left:auto;border-color:#d6e7dc;background:#f3f8f5;color:#315a44}
+  .public-management .day-jump-hint{display:none}
+  .public-management .manager-calendar{display:flex!important;gap:10px!important;overflow-x:auto!important;overflow-y:visible!important;padding:2px 2px 13px!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .public-management .manager-calendar::-webkit-scrollbar{display:none}
+  .public-management .manager-calendar>.day-card{flex:0 0 88%!important;width:88%!important;max-width:360px;scroll-snap-align:center;scroll-snap-stop:always}
+  .public-management .manager-calendar>.day-card:last-child{margin-right:4px}
+}
+</style>
+<script>
+/* Phone day switcher: swipe the cards or tap a weekday; Raw jumps to materials. */
+(function(){
+  const detail=document.getElementById('management-detail-view');
+  if(!detail)return;
+  function setupDayNavigation(){
+    if(!document.body.classList.contains('public-management')||detail.classList.contains('hidden'))return;
+    const slider=detail.querySelector('.manager-calendar');
+    if(!slider)return;
+    let nav=detail.querySelector('.day-jump-nav');
+    if(nav&&nav.dataset.slider===String(slider))return;
+    nav?.remove();
+    const cards=[...slider.querySelectorAll(':scope > .day-card')];
+    if(!cards.length)return;
+    nav=document.createElement('nav');nav.className='day-jump-nav';nav.setAttribute('aria-label','Choose a forecast day');nav.dataset.slider=String(slider);
+    const labels=['MON','TUE','WED','THU','FRI','SAT'];
+    cards.forEach((card,index)=>{
+      const date=card.querySelector('.day-date')?.textContent?.trim().split(/\s+/).slice(0,1).join('')||'';
+      const button=document.createElement('button');button.type='button';button.setAttribute('aria-current',index===0?'true':'false');button.setAttribute('aria-label',`Show ${labels[index]||'day'} ${date}`);button.innerHTML=`${labels[index]||'DAY'}<span>${date}</span>`;
+      button.addEventListener('click',()=>{const left=card.getBoundingClientRect().left-slider.getBoundingClientRect().left+slider.scrollLeft;slider.scrollTo({left,behavior:'smooth'});nav.querySelectorAll('button[data-day]').forEach(b=>b.setAttribute('aria-current','false'));button.setAttribute('aria-current','true')});button.dataset.day=String(index);nav.appendChild(button);
+    });
+    const hint=document.createElement('span');hint.className='day-jump-hint';hint.textContent='SWIPE';nav.appendChild(hint);
+    const rawButton=document.createElement('button');rawButton.type='button';rawButton.className='raw-jump';rawButton.textContent='RAW ↓';rawButton.setAttribute('aria-label','Jump to raw materials');rawButton.addEventListener('click',()=>detail.querySelector('.raw-report')?.scrollIntoView({behavior:'smooth',block:'start'}));nav.appendChild(rawButton);
+    slider.parentNode.insertBefore(nav,slider);
+    let frame=0;slider.addEventListener('scroll',()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;const center=slider.scrollLeft+slider.clientWidth/2;let active=0,best=Infinity;cards.forEach((card,index)=>{const cardCenter=card.offsetLeft+card.offsetWidth/2;const distance=Math.abs(center-cardCenter);if(distance<best){best=distance;active=index}});nav.querySelectorAll('button[data-day]').forEach((button,index)=>button.setAttribute('aria-current',index===active?'true':'false'))})},{passive:true});
+  }
+  const observer=new MutationObserver(setupDayNavigation);observer.observe(detail,{childList:true,subtree:true});setupDayNavigation();
 })();
 </script>
 </body>
