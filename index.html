@@ -289,7 +289,7 @@ render();
   }
 
   function materialTable(record, section, recordIndex, print) {
-    return `<div class="raw-readiness-list">${record.materials.map((material, index) => materialPreview(material, section, recordIndex, index, print)).join('')}</div>`;
+    return `<div class="raw-column-head raw-readiness-head"><span>RAW MATERIAL</span><span>STATUS</span><span>CURRENT STOCK</span><span>TO ORDER</span></div><div class="raw-readiness-list">${record.materials.map((material, index) => materialPreview(material, section, recordIndex, index, print)).join('')}</div>`;
   }
 
   function rawReadinessReport(print = false) {
@@ -1350,7 +1350,15 @@ render();
 .raw-material-line .enough-pill,.raw-material-line .need-pill{font-size:7px;white-space:normal}
 .raw-material-line.done{opacity:.72;text-decoration:none}
 .raw-material-line .raw-arrival-tick{z-index:1}
-@media(max-width:760px){.public-management .raw-material-line{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;padding:10px 8px!important}.public-management .raw-material-line .raw-fact{padding:6px}.public-management .raw-material-line .raw-fact small{font-size:7px;letter-spacing:.25px}.public-management .raw-material-line .raw-fact strong{font-size:10px}.public-management .raw-material-line>b{font-size:12px}.public-management .raw-material-line .raw-status-fact .enough-pill,.public-management .raw-material-line .raw-status-fact .need-pill{font-size:7px}.public-management .raw-material-line .raw-arrival-tick{right:4px;top:4px}}
+.raw-readiness-list{display:block}
+.raw-readiness-head{display:grid!important;grid-template-columns:1.2fr .8fr .9fr .9fr!important}
+.raw-material-line{grid-template-columns:1.2fr .8fr .9fr .9fr!important;gap:8px!important;padding:9px 0!important;border:0;border-bottom:1px solid #e7efe9;border-radius:0;background:transparent}
+.raw-material-line>b{grid-column:auto}
+.raw-material-line .raw-fact{display:block;padding:0;border:0;border-radius:0;background:transparent}
+.raw-material-line .raw-fact small{display:none}
+.raw-material-line .raw-status-fact,.raw-material-line .raw-current-fact,.raw-material-line .raw-order-fact{background:transparent;border:0}
+.raw-material-line .raw-fact strong{font-size:11px}
+@media(max-width:760px){.public-management .raw-readiness-head{display:none!important}.public-management .raw-readiness-list{display:grid;gap:7px}.public-management .raw-material-line{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;padding:10px 8px!important;border:1px solid #e8f0eb;border-radius:10px;background:#fbfdfb}.public-management .raw-material-line>b{grid-column:1/-1;font-size:12px}.public-management .raw-material-line .raw-fact{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;padding:6px;border:1px solid #e8f0eb;border-radius:8px;background:#fff}.public-management .raw-material-line .raw-fact small{display:block;font-size:7px;letter-spacing:.25px}.public-management .raw-material-line .raw-fact strong{font-size:10px}.public-management .raw-material-line .raw-status-fact{background:#f4faf6}.public-management .raw-material-line .raw-current-fact{background:#f3f8fc;border-color:#e1ebf3}.public-management .raw-material-line .raw-order-fact{background:#fff8f1;border-color:#f4e5d5}.public-management .raw-material-line .raw-arrival-tick{right:4px;top:4px}}
 </style>
 <style>
 @media(max-width:760px){
@@ -1375,6 +1383,8 @@ render();
   if(!detail)return;
   function setupDayNavigation(){
     if(!document.body.classList.contains('public-management')||detail.classList.contains('hidden'))return;
+    const existingNav=detail.querySelector('.day-jump-nav');
+    if(!matchMedia('(max-width:760px)').matches){existingNav?.remove();return;}
     const slider=detail.querySelector('.manager-calendar');
     if(!slider)return;
     let nav=detail.querySelector('.day-jump-nav');
@@ -1395,6 +1405,7 @@ render();
     let frame=0;slider.addEventListener('scroll',()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;const center=slider.scrollLeft+slider.clientWidth/2;let active=0,best=Infinity;cards.forEach((card,index)=>{const cardCenter=card.offsetLeft+card.offsetWidth/2;const distance=Math.abs(center-cardCenter);if(distance<best){best=distance;active=index}});nav.querySelectorAll('button[data-day]').forEach((button,index)=>button.setAttribute('aria-current',index===active?'true':'false'))})},{passive:true});
   }
   const observer=new MutationObserver(setupDayNavigation);observer.observe(detail,{childList:true,subtree:true});setupDayNavigation();
+  window.addEventListener('resize',setupDayNavigation,{passive:true});
 })();
 </script>
 </body>
